@@ -82,19 +82,26 @@ static HRESULT (*GetDpiForMonitor)(HMONITOR,MONITOR_DPI_TYPE,UINT*,UINT*) = NULL
 void
 dpi_change(void)
 {
+	warn("starting dpi change\n");
 	UINT dx, dy;
 	POINT pt = {1,1};
 	HMONITOR m = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+	warn("got monitor\n");
 	if ( GetDpiForMonitor && (GetDpiForMonitor( m, MDT_EFFECTIVE_DPI, &dx, &dy) == S_OK )) {
+		warn("changing monitor settings\n");
 		guts. displayResolution. x = dx;
 		guts. displayResolution. y = dy;
+		warn("changed monitor settings\n");
 	}
+	warn("dpi change done\n");
 }
 
 static void
 load_function(HMODULE module, void ** ptr, const char * name)
 {
+	warn("loading: %s %s\n", module, name);
 	(*ptr) = (void*) GetProcAddress(module, name);
+	warn("got: %d\n", ptr);
 }
 
 Bool
@@ -190,19 +197,27 @@ window_subsystem_init( char * error_buf)
 
 	/* Win8 - high dpi awareness stuff */
 	if (( os.dwMajorVersion > 5) || (os.dwMajorVersion == 5 && os.dwMinorVersion > 1)) {
+		warn("high windows, investigating DPI\n");
 		HMODULE shcore = LoadLibrary("SHCORE.DLL");
+		warn("loaded SHCORE\n");
 		if ( shcore ) {
+			warn("SHCORE load confirmed\n");
 #define LOAD_FUNC(f) load_function(shcore, (void**) &f, #f)
 			LOAD_FUNC(SetProcessDpiAwareness);
 			LOAD_FUNC(GetDpiForMonitor);
 #undef LOAD_FUNC
+			warn("SHCORE extra funcs done\n");
 		}
 		if (
 			SetProcessDpiAwareness && GetDpiForMonitor &&
 			(SetProcessDpiAwareness( PROCESS_PER_MONITOR_DPI_AWARE) == S_OK )
-		)
+		){
+			warn("trying dpi change\n");
 			dpi_change();
+			warn("what\n");
+		}
 	
+		warn("high windows part done\n");
 	}
 
 	{
